@@ -4,6 +4,8 @@ namespace App\Middleware;
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use Firebase\JWT\ExpiredException;
+use Firebase\JWT\SignatureInvalidException;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -29,10 +31,24 @@ class VerificarToken implements MiddlewareInterface
             $request = $request->withAttribute('usuario', $decoded->usuario);
             $request = $request->withAttribute('id', $decoded->id);
             return $handler->handle($request);
-        } catch (\Exception $e) {
+        }/* catch (\Exception $e) {
             $response = new SlimResponse();
             $response->getBody()->write(json_encode(['error' => 'Token inválido: ' . $e->getMessage()]));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
+        }*/
+        catch (ExpiredException $e) {
+            return $this->unauthorizedResponse('Token expirado');
+        } catch (SignatureInvalidException $e) {
+            return $this->unauthorizedResponse('Firma del token inválida');
+        } catch (\UnexpectedValueException $e) {
+            return $this->unauthorizedResponse('Token inválido');
         }
     }
+
+    private function unauthorizedResponse(string $mensaje): Response
+{
+    $response = new SlimResponse();
+    $response->getBody()->write(json_encode(['error' => $mensaje]));
+    return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
+}
 }

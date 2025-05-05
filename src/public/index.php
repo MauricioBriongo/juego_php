@@ -28,6 +28,8 @@ $app->get('/usuarios/{usuario}',[UserController::class, 'getUser'])->add(new Ver
 
 $app->put('/usuarios/{usuario}',[UserController::class, 'updateUser'])->add(new VerificarToken());
 
+$app->get('/usuarios/{usuario}/mazos',[MazoController::class, 'obtenerMazosUsuario'])->add(new VerificarToken());
+
 $app->post('/mazos',[MazoController::class, 'crearMazo'])->add(new VerificarToken());
 
 $app->post('/partidas',[PartidaController::class, 'crearPartida'])->add(new VerificarToken());
@@ -36,11 +38,11 @@ $app->post('/jugadas',[JugadaController::class, 'registroJugada'])->add(new Veri
 
 $app->get('/estadisticas',[EstadisticasController::class, 'estadisticas']);
 
-    /**
-     * faltaria manjear los codigos de errores
-     * agregar exceptions
-     * slim $response->withCode(401)
-     */
+$app->get('/cartas',[MazoController::class, 'listarCartasConParametros'])->add(new VerificarToken());
+
+$app->delete('/mazos/{mazo}', [MazoController::class , ':eliminarMazo'])->add(new VerificarToken());
+
+$app->put('/mazos/{mazo}', [MazoController::class, 'actualizarNombreMazo'])->add(new VerificarToken());
 
 $app->run();
 

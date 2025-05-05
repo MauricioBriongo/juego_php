@@ -14,7 +14,7 @@ class JugadaController{
 
     protected static function jugadaServidor():int{ //devuelve id de la carta que juega servidor
        
-        $cartasServer=MazoModel::cartasServidor();//array de las cartas válidas que puede usar servidor
+       $cartasServer=MazoModel::cartasServidor();//array de las cartas válidas que puede usar servidor
         
        $claveAleatoria = array_rand($cartasServer);
 
@@ -56,6 +56,8 @@ class JugadaController{
         }
 
         $serverCarta = self::jugadaServidor();
+
+
         
         $datos = JugadaModel::datosJugada($userCarta,$serverCarta);
         
@@ -75,10 +77,13 @@ class JugadaController{
 
         MazoModel::actualizarEstado($idMazo,$userCarta);
 
+        $atrServer = MazoModel::atributosMazoServer();
+
         $respuesta=[
                     'Carta Servidor'=>$serverCarta,
                     'Ataque usuario' => $resultados['fuerza_jugador'],
-                    'Ataque servidor'=>$resultados['fuerza_servidor']
+                    'Ataque servidor'=>$resultados['fuerza_servidor'],
+                    'Atributos Servidor'=>$atrServer
                      ];
 
         if (JugadaModel::contarJugadas($idPartida) == 5){

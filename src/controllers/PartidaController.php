@@ -33,9 +33,12 @@ class PartidaController{
 
             $cartas = MazoModel::obtenerCartas($idMazo);
 
+            $atributosServer = MazoModel::atributosMazoServer();
+
             $response->getBody()->write(json_encode([
                 'id de partida ' => $idPartida,
-                'cartas' => $cartas
+                'atributos cartas Servidor'=>$atributosServer,
+                'cartas Usuario' => $cartas
             ]));
 
             return $response->withHeader('Content-Type', 'application/json')->withStatus(200);

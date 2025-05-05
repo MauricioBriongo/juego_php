@@ -59,8 +59,7 @@ class UserModel{
             $sql=("SELECT password,id FROM usuario WHERE usuario=:usuario"); //buscar usuario
             $stmt = $pdo->prepare($sql);
             $stmt->execute([':usuario'=>$usuario]);
-            $resultado =$stmt->fetch(PDO::FETCH_ASSOC);
-            var_dump($resultado);   
+            $resultado =$stmt->fetch(PDO::FETCH_ASSOC); 
             if (($resultado) && ($resultado['password']==$password)){
                 return $resultado['id'];
 
@@ -91,7 +90,7 @@ class UserModel{
             try{
                 $link= new DB();
                 $pdo = $link->getConnection();
-                $sql=("SELECT nombre FROM usuario WHERE usuario=:usuario"); // tiense sentido el prepare en este caso que paso por el midleware?
+                $sql=("SELECT nombre FROM usuario WHERE usuario=:usuario"); 
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([':usuario'=>$usuario]);
                 $resultado =$stmt->fetch(\PDO::FETCH_ASSOC);//como pusimos use PDO no hace falta la barra \ antes

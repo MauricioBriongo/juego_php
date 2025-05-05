@@ -62,23 +62,11 @@ class UserController{
         return $response->withHeader('Content-Type', 'application/json')->withStatus($statusCode);
     }
 
-  /*  public static function getUser(Request $request, Response $response){ //PRUEBA retorna todos los usuarios
-        
-        $resultado = UserModel::mostrar();
-
-        $response->getBody()->write(json_encode($resultado));
-        return $response->withHeader('Content-Type', 'application/json');
-
-    }
-        */
-
 
     public static function login(Request $request, Response $response){
         $datos = $request->getParsedBody(); //guardo usuario y password en $datos
         $usuario = $datos['usuario'];
         $password = $datos['clave'];
-
-        var_dump($usuario);
 
         if (empty($usuario) || empty($password)) { //chequo de campos vacios
             $error = ['error' => 'Faltan campos obligatorios'];
@@ -122,7 +110,7 @@ class UserController{
     }
 
     public static function getUser(Request $request, Response $response){
-        $usuario = $request->getAttribute('usuario');
+        $usuario = $request->getAttribute('usuario'); //tomamos el dato desde el token en lugar desde el atributo 
         $respuesta = UserModel::mostrarUsuario($usuario);
         $respuesta['usuario']=$usuario;
 
