@@ -35,7 +35,7 @@ class UserModel{
             return ['error' => 'Error al registrar el usuario: ' . $e->getMessage()]; //preguntar el codigo de error
             }
 
-        }
+    }
 
     public static function mostrar(){
             $link= new DB();
@@ -49,7 +49,7 @@ class UserModel{
 
             return $resultado;
             
-        }
+    }
 
     public static function validarUsuario($usuario,$password){
             try{
@@ -71,7 +71,6 @@ class UserModel{
             }
     }
 
-
     public static function actualizarToken($usuario,$token,$vencimiento){
             try{
                 $link= new DB();
@@ -79,12 +78,12 @@ class UserModel{
                 
                 $stmt = $pdo->prepare("UPDATE usuario SET token = :token, vencimiento_token = :vencimiento WHERE usuario = :usuario");
                 $stmt->execute([':usuario'=> $usuario ,':token'=>$token, ':vencimiento'=>$vencimiento]);
-            return true;
+                return true;
             }catch (PDOException $e){
                 return false;
             }
 
-        }
+    }
 
     public static function mostrarUsuario($usuario){
             try{
@@ -99,8 +98,8 @@ class UserModel{
 
             }catch(PDOException $e){
                 return ['error' => 'Error al buscar usuario ' . $e->getMessage()];
-            }
         }
+    }
 
     public static function actualizarUsuario($usuario, $datos){
             try{

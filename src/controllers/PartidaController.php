@@ -14,7 +14,10 @@ class PartidaController{
         
         $idUsuario = $request->getAttribute('id');
 
-        $idMazo = $request->getParsedBody()['idMazo'];
+        $datos = $request->getParsedBody();
+
+        $idMazo = $datos['idMazo'] ?? null;
+
 
         if (!$idMazo){ //si no mandan el id de mazo
             $response->getBody()->write(json_encode(['error '=>'se requiere un id de mazo']));
@@ -23,7 +26,12 @@ class PartidaController{
 
         if (!MazoModel::verificarMazo($idMazo,$idUsuario)) { //si el id de mazo no es el de usuario
             $response->getBody()->write(json_encode(['error' => 'El mazo no te pertenece']));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(403);  
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);  
+        }
+
+        if (MazoModel::mazoEnUso($idMazo)){
+            $response->getBody()->write(json_encode(['error' => 'El mazo está siendo utilizado en un partida que aún no termina']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
         }
 
         try {
@@ -33,11 +41,11 @@ class PartidaController{
 
             $cartas = MazoModel::obtenerCartas($idMazo);
 
-            $atributosServer = MazoModel::atributosMazoServer();
+            //$atributosServer = MazoModel::atributosMazoServer();
 
             $response->getBody()->write(json_encode([
                 'id de partida ' => $idPartida,
-                'atributos cartas Servidor'=>$atributosServer,
+                //'atributos cartas Servidor'=>$atributosServer,
                 'cartas Usuario' => $cartas
             ]));
 

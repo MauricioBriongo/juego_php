@@ -76,6 +76,37 @@ class MazoModel{
         return $stmt->fetchColumn() > 0;
     }
 
+    public static function mazoEnUso($idMazo){
+        try{
+            $link = new DB();
+            $pdo = $link->getConnection();
+
+            $stmt = $pdo->prepare("SELECT * FROM partida 
+                                WHERE mazo_id = :id_mazo 
+                                AND estado = 'en_curso'");
+            $stmt->execute([':id_mazo' => $idMazo]);
+
+            return ($stmt->rowCount() > 0);  
+        }catch(PDOException $e){
+            return ['error'=>'Error al verificar mazo en uso '.$e->getMessage()];
+        }  
+    }
+
+    public static function usuarioEnPartida($user,$partida){
+        $link = new DB();
+            $pdo = $link->getConnection();
+            try{
+                $stmt = $pdo->prepare("SELECT 1 FROM partida AS p
+                                       WHERE p.id = :partida 
+                                       AND p.usuario_id = :user AND estado = 'en_curso'");
+                $stmt->execute([':user'=>$user,
+                                ':partida'=>$partida]);
+                return $stmt->fetchColumn();
+            }catch(PDOException $e){
+                return ['error'=>'Error al verificar usuario en partida '.$e->getMessage()];
+            }
+    }
+
     public static function verificarCarta($idCarta, $idPartida):int{
             $link = new DB();
             $pdo = $link->getConnection();
@@ -83,13 +114,14 @@ class MazoModel{
                 $stmt = $pdo->prepare("SELECT p.mazo_id FROM partida as p 
                                         INNER JOIN mazo_carta AS m ON p.mazo_id = m.mazo_id
                                         WHERE m.carta_id=:idCarta AND p.id=:idPartida AND m.estado ='en_mano'");
-
+                
             $stmt->execute([':idCarta'=>$idCarta,
                             ':idPartida'=>$idPartida]);
 
-            return ($stmt->fetchColumn());
+            $resultado =$stmt->fetchColumn();
 
-            
+            return $resultado;
+
 
             }catch(PDOException $e){
                 return ['error'=>'Error al verificar carta '.$e->getMessage()];
@@ -149,33 +181,31 @@ class MazoModel{
       return $cartasServer;
 
     }
-
+   
     public static function getMazosPorUsuario($usuarioId) {
         try {
             $db = new DB();
             $pdo = $db->getConnection();
 
-            $stmt = $pdo->prepare("SELECT m.nombre AS mazo ,c.nombre AS carta
-                                   FROM mazo AS m 
-                                   INNER JOIN mazo_carta AS mc ON mc.mazo_id = m.id
-                                   INNER JOIN carta AS c ON mc.carta_id = c.id
-                                   WHERE m.usuario_id =:usuarioId");
+            $stmt = $pdo->prepare("SELECT nombre AS mazo
+                                   FROM mazo 
+                                   WHERE usuario_id =:usuarioId");
             $stmt->execute([':usuarioId' => $usuarioId]);
 
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         } catch (PDOException $e) {
             
-            return ['error' => 'Error al obtener mazos del usuartio: ' . $e->getMessage()];
+            return ['error' => 'Error al obtener mazos del usuario: ' . $e->getMessage()];
         }
     }
-/*
+    
     public static function buscarCartas($nombre,$atributo) {
         
         $link = new DB(); 
         $pdo = $link->getConnection();
         
-        $query = "SELECT * FROM carta WHERE 1 = 1"; // 1 = 1 -> tecnica para que siempre de true y luego se pueda concatenar con operadores LOGICOS 
+        $query = "SELECT nombre, ataque FROM carta WHERE 1 = 1"; // 1 = 1 -> tecnica para que siempre de true y luego se pueda concatenar con operadores LOGICOS 
         $params = [];
 
         if ($nombre !== null) {
@@ -184,7 +214,7 @@ class MazoModel{
         }
 
         if ($atributo !== null) {
-            $query .= " AND atributo = :atributo"; // busq. parcial
+            $query .= " AND atributo_id = :atributo"; // busq. parcial
             $params[':atributo'] = $atributo;
         }
 
@@ -193,48 +223,7 @@ class MazoModel{
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-        */
-
-    public static function listarCartas($nombre = null, $atributo = null) {
-        $link = new DB(); 
-        $pdo = $link->getConnection();
     
-        // Caso 1: Ambos parámetros??
-        if ($nombre !== null && $atributo !== null) {
-            $stmt = $pdo->prepare("SELECT atr.nombre AS atributo, c.ataque_nombre,c.ataque 
-                                   FROM carta AS c
-                                   INNER JOIN atributo AS atr ON c.atributo_id = atr.id
-                                   WHERE c.nombre = :nombre AND atr.nombre = :atributo");
-            $stmt->execute([':nombre' => $nombre, ':atributo' => $atributo]);
-            return $stmt->fetch(PDO::FETCH_ASSOC);
-        }
-    
-        // Caso 2: Solo nombre
-        if ($nombre !== null) {
-            $stmt = $pdo->prepare("SELECT atr.nombre AS atributo, c.ataque_nombre,c.ataque 
-                                   FROM carta AS c
-                                   INNER JOIN atributo AS atr ON c.atributo_id = atr.id
-                                   WHERE c.nombre = :nombre");
-            $stmt->execute([':nombre' => $nombre]);
-            return $stmt->fetch(PDO::FETCH_ASSOC);
-        }
-    
-        // Caso 3: Solo atributo
-        if ($atributo !== null) {
-            $stmt = $pdo->prepare("SELECT c.nombre AS Carta ,c.ataque 
-                                  FROM carta AS c
-                                  INNER JOIN atributo AS atr ON c.atributo_id = atr.id
-                                  WHERE atr.nombre = :atributo");
-            $stmt->execute([':atributo' => $atributo]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        }
-
-        
-    
-        // Caso 4: Nada enviado
-        return ['error' => 'Debe enviar al menos uno de los parámetros: nombre o atributo.'];
-    }
-
     public static function mazoUsado($idMazo) {
         try {
             $link = new DB();
@@ -269,6 +258,7 @@ class MazoModel{
     }
 
     public static function actualizarNombreMazo($idMazo, $nuevoNombre, $usuarioId) {
+    
         try {
  
             $link = new DB;
@@ -294,7 +284,7 @@ class MazoModel{
             return ['error' => 'Error al actualizar: ' . $e->getMessage()];
  
         }
-}
+    }
 
     public static function atributosMazoServer(){
         $link = new DB();

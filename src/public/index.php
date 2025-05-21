@@ -30,6 +30,8 @@ $app->put('/usuarios/{usuario}',[UserController::class, 'updateUser'])->add(new 
 
 $app->get('/usuarios/{usuario}/mazos',[MazoController::class, 'obtenerMazosUsuario'])->add(new VerificarToken());
 
+$app->get('/usuarios/{usuario}/partidas/{partida}/cartas',[JugadaController::class,'atributosEnMano'])->add(new VerificarToken);
+
 $app->post('/mazos',[MazoController::class, 'crearMazo'])->add(new VerificarToken());
 
 $app->post('/partidas',[PartidaController::class, 'crearPartida'])->add(new VerificarToken());
@@ -38,7 +40,7 @@ $app->post('/jugadas',[JugadaController::class, 'registroJugada'])->add(new Veri
 
 $app->get('/estadisticas',[EstadisticasController::class, 'estadisticas']);
 
-$app->get('/cartas',[MazoController::class, 'listarCartasConParametros'])->add(new VerificarToken());
+$app->get('/cartas',[MazoController::class, 'listarCartasConParametros']);
 
 $app->delete('/mazos/{mazo}', [MazoController::class , ':eliminarMazo'])->add(new VerificarToken());
 

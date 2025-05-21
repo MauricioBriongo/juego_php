@@ -42,22 +42,33 @@ class JugadaController{
     }
    
     public static function registroJugada(Request $request, Response $response){
-        $nombreUsuario=$request->getAttribute('usuario');
+        $nombreUsuario=$request->getAttribute('usuario_token');
+        $idUsuario=$request->getAttribute('id');
         $datos = $request->getParsedBody();
 
-        $userCarta = $datos['carta'];
-        $idPartida = $datos['partida'];
+        $userCarta = $datos['carta'] ?? null;
+        $idPartida = $datos['partida'] ?? null;
+
+        if ((!$userCarta) || (!$idPartida)){
+            $response->getBody()->write(json_encode(['error' => 'Faltan campos obligatorios']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        $control=MazoModel::usuarioEnPartida($idUsuario,$idPartida); //controla que la partida recibida sea la correcta     
+
+        if (!$control){
+            $response->getBody()->write(json_encode(['error' => 'La partida no pertenece al usuario o está finalizada']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
 
         $idMazo = MazoModel::verificarCarta($userCarta, $idPartida);
 
         if (!$idMazo){
-            $response->getBody()->write(json_encode(['error' => 'carta invalida']));
+            $response->getBody()->write(json_encode(['error' => 'Carta inválida']));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
 
         $serverCarta = self::jugadaServidor();
-
-
         
         $datos = JugadaModel::datosJugada($userCarta,$serverCarta);
         
@@ -77,13 +88,13 @@ class JugadaController{
 
         MazoModel::actualizarEstado($idMazo,$userCarta);
 
-        $atrServer = MazoModel::atributosMazoServer();
+        //$atrServer = MazoModel::atributosMazoServer();
 
         $respuesta=[
                     'Carta Servidor'=>$serverCarta,
                     'Ataque usuario' => $resultados['fuerza_jugador'],
                     'Ataque servidor'=>$resultados['fuerza_servidor'],
-                    'Atributos Servidor'=>$atrServer
+                    'Ganador'=>null
                      ];
 
         if (JugadaModel::contarJugadas($idPartida) == 5){
@@ -92,27 +103,67 @@ class JugadaController{
 
             if ($puntosJugador['gano'] > $puntosJugador['perdio']) {
                 $resultado='gano';
+                $ganador=$nombreUsuario;
             } elseif ($puntosJugador['gano'] < $puntosJugador['perdio']) {
                 $resultado='perdio';
+                $ganador='Servidor';
             } else {
                 $resultado = 'empato';
+                $ganador = 'Empate';
             }
 
             PartidaModel::finalizarPartida($idPartida,$resultado);
 
-            $respuesta = ['Usuario: '=>$nombreUsuario,
-                          'Resultado: '=>$resultado,
-                          'Victorias: '=>$puntosJugador['gano'],
-                          'Derrotas: '=>$puntosJugador['perdio']
+            $respuesta = ['Carta Servidor'=>$serverCarta,
+                          'Ataque usuario' => $resultados['fuerza_jugador'],
+                          'Ataque servidor'=>$resultados['fuerza_servidor'],
+                          'Ganador'=>$ganador
                         ];           
-        }
-
-        
+        }  
         
         $response->getBody()->write(json_encode($respuesta));
 
         return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
         
     }
+
+    public static function atributosEnMano(Request $request, Response $response, array $args){
+
+        $usuarioUrl = (int)$args['usuario'] ?? null; 
+        $partidaId = (int)$args['partida'] ?? null;
+
+        $usuarioLog = $request->getAttribute('id');
+        
+        if (($usuarioLog != $usuarioUrl) & ($usuarioUrl!=1)) { //puedo ver las del servidor (id=1)
+            
+            $respuesta = ['error' => 'No autorizado para ver las cartas de este usuario.'];
+            $response->getBody()->write(json_encode($respuesta));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
+        }
+
+        if (!JugadaModel::usuarioEnPartida($usuarioLog, $partidaId)) {
+            $respuesta = ['error' => 'Usuario no participa en la partida.'];
+            $response->getBody()->write(json_encode($respuesta));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
+        }
+
+        $atributos = JugadaModel::atributosEnMano($usuarioLog, $partidaId);
+
+        if (isset($atributos['error'])) {
+            $response->getBody()->write(json_encode([
+                'error' => 'Error al obtener los atributos',
+                'detalle' => $atributos['error']
+            ]));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
+
+        if (!$atributos){
+            $response->getBody()->write(json_encode(['error' => 'Partida finalizada']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
     
+        $response->getBody()->write(json_encode($atributos));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+
+    }    
 }

@@ -13,16 +13,19 @@ class MazoController{
 
     public static function crearMazo(Request $request, Response $response){
         $datos=$request->getParsedBody();//deberia recibir un nombre de mazo y un array de 5 id de cartas
-        $nombre=$datos['nombre'];
-        $cartas=$datos['cartas'];
+        
         $cartasPorMazo = 5;
         $mazosPermitidos=3;
         $usuarioId=$request->getAttribute('id'); //obtengo el id de usuario desde lo que mandó el token
 
-        if (empty($nombre) || !is_array($cartas) || count($cartas)!=$cartasPorMazo){
+        if (!isset($datos['nombre'], $datos['cartas']) || !is_array($datos['cartas']) || count($datos['cartas']) != $cartasPorMazo){
             $response->getBody()->write(json_encode(['error' => 'Debe enviar un nombre de mazo y exactamente 5 cartas']));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
+
+        $nombre=$datos['nombre'];
+        $cartas=$datos['cartas'];
+
         if (count(array_unique($cartas))!= $cartasPorMazo){
             $response->getBody()->write(json_encode(['error' => 'No se pueden repetir cartas']));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
@@ -53,10 +56,16 @@ class MazoController{
             }
     }
 
-    public static function obtenerMazosUsuario(Request $request, Response $response) {
-        
-        $usuarioId = $request->getAttribute('id'); // valida login
-        $usuarioNombre=$request->getAttribute('usuario');
+    public static function obtenerMazosUsuario(Request $request, Response $response, array $args) {
+        $usuarioUrl=$args['usuario'];
+        $usuarioId = $request->getAttribute('id');
+        $usuarioToken=$request->getAttribute('usuario_token');
+
+        if ($usuarioUrl !== $usuarioToken){
+            $response->getBody()->write(json_encode(['error '=>'No esta autorizado a ver los mazos de este usuario']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
+        }
+
         try {
             $mazosData = MazoModel::getMazosPorUsuario($usuarioId);
 
@@ -65,9 +74,10 @@ class MazoController{
 
                 return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
             }
-
-            $mazos=['usuario'=>$usuarioNombre];
-
+            /*
+            $mazos=['usuario'=>$usuarioToken];
+            
+            
             foreach ($mazosData as $fila){
                 $nombreMazo = $fila['mazo'];
                 $nombreCarta = $fila['carta'];
@@ -78,9 +88,9 @@ class MazoController{
 
                 $mazos[$nombreMazo][]=$nombreCarta;
             }
+            */    
 
-
-            $response->getBody()->write(json_encode($mazos));
+            $response->getBody()->write(json_encode($mazosData));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
         
         } catch (\Exception $e) {
@@ -91,13 +101,18 @@ class MazoController{
 
     public static function listarCartasConParametros(Request $request, Response $response) {
 
-        $params = $request->getQueryParams(); // botiene parametros del request -> nom y atr
+        $params = $request->getQueryParams(); // obtiene parametros del request -> nom y atr
         $nombre = $params['nombre'] ?? null; // por si no se envia el dato
         $atributo = $params['atributo'] ?? null;
         
 
         try {
-            $cartas = MazoModel::listarCartas($nombre, $atributo); // consulta sql en el model
+            $cartas = MazoModel::buscarCartas($nombre, $atributo); // consulta sql en el model
+
+            if (!$cartas){
+                $response->getBody()->write(json_encode(['error'=>'Carta no encontrada']));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
+            }
 
             $response->getBody()->write(json_encode($cartas)); // dicho met retornara algo y eso se guarda en $response
             
@@ -111,6 +126,12 @@ class MazoController{
     }
 
     public static function eliminarMazo($request, $response, $args) {
+                
+    //esta es la correccion, chequea si el numero de mazo fue enviado
+        if (!isset($args['mazo'])) {
+            $response->getBody()->write(json_encode(['error' => 'ID de mazo no enviado']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
         $idMazo = $args['mazo']; 
         $usuarioId = $request->getAttribute('id'); 
 
@@ -143,11 +164,21 @@ class MazoController{
         }
     }
 
-    public static function actualizarNombreMazo($request, $response, $args){
-        $mazoId = $args['mazo'];
+    public static function actualizarNombreMazo($request, $response, $args){  
+        $mazoId = $args['mazo']?? null;
         $usuarioId = $request->getAttribute('id');
-
         $datos = $request->getParsedBody();
+
+        if (empty($mazoId)) {
+            $response->getBody()->write(json_encode(['error' => 'Falta el ID del mazo']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+    
+        if (empty($usuarioId)) {
+            $response->getBody()->write(json_encode(['error' => 'Falta el ID del usuario']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
         $nuevoNombre = $datos['nombre'] ?? null;
 
         if (empty($nuevoNombre)) {
@@ -159,7 +190,7 @@ class MazoController{
 
         if (isset($resultado['error'])) {
             $response->getBody()->write(json_encode($resultado));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(401);
         }
         $response->getBody()->write(json_encode($resultado));
         return $response->withHeader('Content-Type', 'application/json')->withStatus(200);

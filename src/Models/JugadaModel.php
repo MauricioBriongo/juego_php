@@ -90,13 +90,55 @@ class JugadaModel{
 
         $datos = $stmt->fetch();
 
-        
-
         return [ //porque puede devolver Strings en lugar de enteros
             'gano' => (int)$datos['gano'],
             'perdio' => (int)$datos['perdio']
         ];
 
     }
+
+    public static function usuarioEnPartida($usuarioLog, $partidaId):bool{
+        $link = new DB();
+        $pdo = $link->getConnection();
+
+        $sql = "SELECT COUNT(*) FROM PARTIDA 
+                WHERE usuario_id = :usuario
+                AND id =:partida";
+
+        $stmt=$pdo->prepare($sql);
+
+        $stmt->execute([':partida'=>$partidaId,
+                        ':usuario'=>$usuarioLog]);
+
+        $count = $stmt->fetchColumn();
+
+        return $count>0;
+    }
+
+    public static function atributosEnMano($usuarioLog, $partidaId){
+        try{
+            $link = new DB();
+            $pdo = $link->getConnection();
+
+            $sql = "SELECT c.atributo_id
+                    FROM partida p
+                    JOIN mazo_carta mc ON mc.mazo_id = p.mazo_id
+                    JOIN carta c ON c.id = mc.carta_id
+                    WHERE p.id = :partida
+                        AND p.usuario_id = :usuario
+                        AND mc.estado = 'en_mano'"; 
+
+            $stmt=$pdo->prepare($sql);
+
+            $stmt->execute([':partida'=>$partidaId,
+                            ':usuario'=>$usuarioLog]);
+
+            $atributos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            return $atributos;
+            }catch (PDOException $e){
+                return['error'=> 'al buscar atributos en mano' . $e->getMessage()];
+            }
+        }
     
 }
