@@ -65,12 +65,12 @@ class UserController{
 
     public static function login(Request $request, Response $response){
         $datos = $request->getParsedBody(); //guardo usuario y password en $datos
-        $nombre = $datos['nombre'];
-        $usuario = $datos['usuario'];
-        $password = $datos['clave'];
+        $nombre = $datos['nombre'] ?? null;
+        $usuario = $datos['usuario'] ?? null;
+        $password = $datos['clave'] ?? null;
         
 
-        if (empty($usuario) || empty($password)) { //chequo de campos vacios
+        if (empty($usuario) || empty($password) || empty($nombre)) { //chequo de campos vacios
             $error = ['error' => 'Faltan campos obligatorios'];
             $response->getBody()->write(json_encode($error));
             return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
